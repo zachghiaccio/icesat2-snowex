@@ -13,3 +13,5 @@ Currently only takes specific datasets as input, but future versions will includ
 **is2_neon_coregistration.py** - Same as "is2_bsu_intersection", but for the SnowEx 2022/2023 campaign in Alaska.
 
 **lidar_processing.py** - Contains several functions to process ICESat-2 and airborne lidar data. (1) Identifies the strong beams in a read ICESat-2 file. (2) Concatenates ICESat-2 surface height data into dataframes. (3) Coregisters ICESat-2 dataframes with airborne lidar DEMs. (4) Coregisters airborne lidar DEMs with ground-based data sets. (5) Coregisters ICESat-2 data with USGS land cover maps. (6) Generates slope and shaded relief maps from airborne lidar DEMs (requires xrspatial package).
+
+test addition
