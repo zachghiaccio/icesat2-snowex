@@ -7,13 +7,13 @@ Created on Thu Jun 16 13:50:22 2022
 
 import h5py
 import datetime
-import contextily as cx
+#import contextily as cx
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 from scipy.interpolate import RectBivariateSpline
-from xrspatial import hillshade, slope
+#from xrspatial import hillshade, slope
 
 #---------------#
 def strong_beam_finder(sc_orient):
