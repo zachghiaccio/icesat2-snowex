@@ -163,4 +163,4 @@ def make_new_rgts(kml_file):
     kml_right.save('approx_right_beams.kml')
     kml_left.save('approx_left_beams.kml)
     
-    return kml_gt3l, kml_gt1l
+    return kml_right, kml_left
