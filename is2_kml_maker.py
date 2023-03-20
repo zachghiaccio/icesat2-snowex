@@ -164,3 +164,59 @@ def make_new_rgts(kml_file):
     kml_left.save('approx_left_beams.kml)
     
     return kml_right, kml_left
+                  
+#\---------------------------------------------------------/#
+def make_too_track(kml_file, lat0, lon0, latn, lonn):
+    """
+    Approximates the location of a TOO track tasked for ICESat-2.
+    Requires the original ICESat-2 track in KML form, the coordinates
+    of the requested TOO, and approximate coordinates from the
+    original track.
+    
+    Parameters
+    ----------
+    kml_file: str
+        A KML file containing ICESat-2 coordinate information.
+        KMLs from "is2_kml_maker" and from the ICESat-2
+        website are both valid.
+    lat0, lon0: float
+        Lat/lon coordinates for a point along the original ICESat-2
+        track. Should be close to the TOO coordinates.
+    latn, lonn: float
+        Lat/lon coordinates from the TOO tasking order.
+        
+    Returns
+    ----------
+    too_center: KML file
+        KML track for TOO center beam(s).
+    too_right: KML file
+        KML track for TOO right beam(s).
+    too_left: KML file
+        KML track for TOO left beam(s).
+    """
+    
+    # Calculate the change in coordinates
+    dellat = latn - lonn
+    dellon = lonn - lon0
+    
+    # Shift the original KML coordinates
+    kml_lat, kml_lon = kml_to_coords(kml_file)
+    kml_lat += dellat
+    kml_lon += dellon
+                  
+    # Generate new KML for shifted track
+    is2_kml = simplekml.Kml()
+    ls = is2_kml.newlinestring(name='gt2l')
+                  
+    coords = np.empty([len(kml_lat), 2])
+    coords[:,0], coords[:,1] = kml_lon, kml_lat
+    for row in coords:
+        ls.coords.addcoordinates([(row[0], row[1])])
+        
+    #raise ValueError('debug')
+    # Approximate the left and right beams, and save the new KMLs
+    too_center = 'too_center_track.kml'
+    is2_kml.save(too_center)
+    too_right, too_left = make_new_rgts(too_center)
+    
+    return too_center, too_right, too_left
