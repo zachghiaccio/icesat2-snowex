@@ -213,7 +213,6 @@ def make_too_track(kml_file, lat0, lon0, latn, lonn):
     for row in coords:
         ls.coords.addcoordinates([(row[0], row[1])])
         
-    #raise ValueError('debug')
     # Approximate the left and right beams, and save the new KMLs
     too_center = 'too_center_track.kml'
     is2_kml.save(too_center)
