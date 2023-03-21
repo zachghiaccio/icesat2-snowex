@@ -68,7 +68,7 @@ def atl06q(field_id, date_range, rgt):
     short_name = 'ATL06'
     
     # Define the spatial extent using a pre-generated bounding box
-    with open('snowex_sites_for_icepyx.pkl', 'rb') as f:
+    with open('/home/jovyan/icesat2-snowex/jsons-shps/snowex_sites_for_icepyx.pkl', 'rb') as f:
         coordinates = pickle.load(f)
         spatial_extent = coordinates['alaska']
         
@@ -76,8 +76,8 @@ def atl06q(field_id, date_range, rgt):
     region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
     
     # Set up s3 cloud access
-    region.earthdata_login('example', 'query@example.edu', s3token=True)
-    credentials = reg._s3login_credentials
+    region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+    credentials = region._s3login_credentials
     s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
                            secret=credentials['secretAccessKey'],
                            token=credentials['sessionToken'])
@@ -85,7 +85,8 @@ def atl06q(field_id, date_range, rgt):
     # Access the data through an s3 url
     gran_ids = region.avail_granules(ids=True, cloud=True)
     s3url = gran_ids[1][0]
-    f = h5py.File(s3.open(s3url, 'rb'), 'r')
+    f = s3.open(s3url, 'rb')
+    f = [f]
     
     # Process the data into a DataFrame
     atl06 = lp.beam_cycle_concat(f, 'ATL06')
@@ -99,7 +100,7 @@ def atl08q(field_id, date_range, rgt):
     short_name = 'ATL08'
     
     # Define the spatial extent using a pre-generated bounding box
-    with open('snowex_sites_for_icepyx.pkl', 'rb') as f:
+    with open('/home/jovyan/icesat2-snowex/jsons-shps/snowex_sites_for_icepyx.pkl', 'rb') as f:
         coordinates = pickle.load(f)
         spatial_extent = coordinates['alaska']
         
@@ -107,8 +108,8 @@ def atl08q(field_id, date_range, rgt):
     region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
     
     # Set up s3 cloud access
-    region.earthdata_login('example', 'query@example.edu', s3token=True)
-    credentials = reg._s3login_credentials
+    region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+    credentials = region._s3login_credentials
     s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
                            secret=credentials['secretAccessKey'],
                            token=credentials['sessionToken'])
@@ -116,9 +117,10 @@ def atl08q(field_id, date_range, rgt):
     # Access the data through an s3 url
     gran_ids = region.avail_granules(ids=True, cloud=True)
     s3url = gran_ids[1][0]
-    f = h5py.File(s3.open(s3url, 'rb'), 'r')
+    f = s3.open(s3url, 'rb')
+    f = [f]
     
     # Process the data into a DataFrame
-    atl06 = lp.beam_cycle_concat(f, 'ATL08')
+    atl08 = lp.beam_cycle_concat(f, 'ATL08')
     
     return atl08

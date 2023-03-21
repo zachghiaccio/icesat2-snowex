@@ -73,7 +73,7 @@ def beam_cycle_concat(is2_files, product_id):
         A concatenated DataFrame containing all repeat tracks and strong beams.
 
     """
-    
+
     concat_pd = pd.DataFrame()
     for file in is2_files:
         with h5py.File(file, 'r') as f:
