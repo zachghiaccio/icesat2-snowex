@@ -170,9 +170,18 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
     
     snow_depths = np.array(lidar_snow_depth.sel(band=1))[::-1,:]
     snow_depths[np.isnan(snow_depths)] = -9999
-    interpolator2 = RectBivariateSpline(np.array(y0)[::-1],
-                                       np.array(x0),
-                                       snow_depths)
+    try:
+        interpolator2 = RectBivariateSpline(np.array(y0)[::-1],
+                                           np.array(x0),
+                                           snow_depths)
+    except:
+        # If the snow-on/-off DEMs are not of the same size
+        x0 = np.array(lidar_snow_depth.x)
+        y0 = np.array(lidar_snow_depth.y)
+        
+        interpolator2 = RectBivariateSpline(np.array(y0)[::-1],
+                                           np.array(x0),
+                                           snow_depths)
     
     # Use the constructed spline to align NEON with ICESat-2. This is done for
     # all three strong beams.
@@ -196,12 +205,12 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
             time = is2_tmp['time'][i1]
             beam = is2_tmp['gt'][i1]
         else:
-            is2_tmp = is2_pd.loc[is2_pd['spot']==spot]
+            is2_tmp = is2_pd.loc[is2_pd['gt']==spot]
             
             xn = is2_tmp['x'].values
             yn = is2_tmp['y'].values
             
-            #Define indices within x/y bounds
+            # Define indices within x/y bounds
             i1 = (xn>np.min(x0)) & (xn<np.max(x0))
             i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
             
@@ -210,25 +219,36 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
             lidar_h = interpolator(yn[i1], xn[i1], grid=False)
             lidar_d = interpolator2(yn[i1], xn[i1], grid=False)
             is2_height = is2_tmp['height'][i1]
-            time = is2_tmp['time'][i1]
             beam = is2_tmp['spot'][i1]
+            
+            # Add uncertainty due to photon spread (ATL03 only)
+            if isinstance(is2_pd, gpd.GeoDataFrame):
+                h_sigma = is2_tmp['h_sigma'][i1]
         
     
     # Construct co-registered dataframe (NEEDS TO INCLUDE ALL BEAMS AND TIMES)
-        tmp = pd.DataFrame(data={'time':time,
-                                 'x': x,
-                                 'y': y,
-                                 'lidar_height': lidar_h,
-                                 'lidar_snow_depth': lidar_d,
-                                 'is2_height': is2_height,
-                                 'beam': beam})
+        if isinstance(is2_pd, gpd.GeoDataFrame):
+            # Only the ATL03 data is in as a geodataframe (quick fix for now)
+            tmp = pd.DataFrame(data={'x': x,
+                                     'y': y,
+                                     'lidar_height': lidar_h,
+                                     'lidar_snow_depth': lidar_d,
+                                     'is2_height': is2_height,
+                                     'h_sigma': h_sigma,
+                                     'beam': beam})
+        else:
+            tmp = pd.DataFrame(data={'x': x,
+                                     'y': y,
+                                     'lidar_height': lidar_h,
+                                     'lidar_snow_depth': lidar_d,
+                                     'is2_height': is2_height,
+                                     'beam': beam})
         
         is2_neon_pd = pd.concat([is2_neon_pd, tmp])
         
     # Apply correction factor to NEON data
     is2_neon_pd['lidar_height'] += geoid_correction
     is2_neon_pd['residual'] = is2_neon_pd['is2_height'] - is2_neon_pd['lidar_height']
-    is2_neon_pd['slope'] = is2_neon_pd['is2_height'].rolling(10, min_periods=2).apply(polyf, raw=False)
     
     return is2_neon_pd
 
