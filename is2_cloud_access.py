@@ -42,7 +42,7 @@ def atl03q(field_id):
         region = icesat2.toregion('jsons-shps/bcef_lidar_box.geojson')['poly']
     elif field_id == 'acp':
         # Arctic Coastal Plain, AK
-        region = icesat2.toregion('jsons-ships/acp_lidar_box.geojson')['poly']
+        region = icesat2.toregion('jsons-shps/acp_lidar_box.geojson')['poly']
     else:
         raise ValueError('Field ID not recognized, or not implemented yet.')
     
