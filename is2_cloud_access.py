@@ -1,3 +1,4 @@
+import earthaccess
 import ipywidgets as widgets
 import logging
 import concurrent.futures
@@ -75,9 +76,10 @@ def atl06q(field_id, date_range, rgt):
     # Generate the query object
     region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
     
-    # Set up s3 cloud access
+    # Set up s3 cloud access - currently in a transition phase for the authentication
     region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
-    credentials = region._s3login_credentials
+    #s3 = earthaccess.get_s3fs_session(daac='NSIDC', provider=region._s3login_credentials)
+    credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
     s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
                            secret=credentials['secretAccessKey'],
                            token=credentials['sessionToken'])
@@ -107,9 +109,9 @@ def atl08q(field_id, date_range, rgt):
     # Generate the query object
     region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
     
-    # Set up s3 cloud access
+    # Set up s3 cloud access - currently in a transition phase for the authentication
     region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
-    credentials = region._s3login_credentials
+    credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
     s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
                            secret=credentials['secretAccessKey'],
                            token=credentials['sessionToken'])

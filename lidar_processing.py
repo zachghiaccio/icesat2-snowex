@@ -205,7 +205,7 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
             time = is2_tmp['time'][i1]
             beam = is2_tmp['gt'][i1]
         else:
-            is2_tmp = is2_pd.loc[is2_pd['gt']==spot]
+            is2_tmp = is2_pd.loc[is2_pd['spot']==spot]
             
             xn = is2_tmp['x'].values
             yn = is2_tmp['y'].values
