@@ -4,11 +4,11 @@ This directory contains preliminary snow depth data derived from ICESat-2 ATL03,
 Note that the ATL03 products contain more information than the ATL06/ATL08 products, which are identical beyond the resolution and pre-processing methods.
 
 Spatial Resolution for Each Product:
-* ATL03: 10 m^
+* ATL03: 10 m*
 * ATL06: 40 m
 * ATL08: 100 m
 
-^ATL03 data is processed at 10 m resolution, but aggregates photons within 20 m segments using high-confidence ground photons. Ground photons are identified using the ATL08 vegetation classification scheme.
+*ATL03 data is processed at 10 m resolution, but aggregates photons within 20 m segments using high-confidence ground photons. Ground photons are identified using the ATL08 vegetation classification scheme.
 
 ## ATL03
 | Label     | Long Name | Data Type | Description | 
