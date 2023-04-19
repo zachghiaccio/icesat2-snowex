@@ -27,8 +27,8 @@ Spatial Resolution for Each Product:
 | lon | Longitude | float64 | Longitude coordinate |
 | lat | Latitude | float64 | Latitude coordinate |
 | geometry | lat/lon point geometry | shapely.geometry | Lat/lon coordinate for data mapping |
-| land_cover_value | float64 | Land cover ID | NLCD numeric identifier for land cover type |
-| land_cover | string | Land cover type | NLCD 2019 land cover classification |
+| land_cover_value | Land cover ID | float64 | NLCD numeric identifier for land cover type |
+| land_cover | Land cover type | string | NLCD 2019 land cover classification |
 
 ## ATL06/08
 | Label     | Long Name | Data Type | Description | 
