@@ -78,7 +78,22 @@ def snotel_fetch(sitecode, variablecode='SNOTEL:SNWD_D', start_date='1950-10-01'
     
     Parameters
     ----------
-    sitecode: 
+    sitecode: str
+        Numeric ID for SNOTEL site, in string format.
+    variablecode: str
+        Dataset to be accessed. 
+        Default: SNOTEL snow depth.
+    start_date: str
+        Start date of SNOTEL time series, in YYYY-MM-DD format.
+        Default: 1950-10-01
+    end_date: str
+        End date of SNOTEL time series, in YYYY-MM-DD format.
+        Default: 2020-12-31
+        
+    Returns
+    -------
+    values_df: DataFrame
+        DataFrame containing desired SNOTEL dataset.
     
     """
     
@@ -104,6 +119,23 @@ def snotel_fetch(sitecode, variablecode='SNOTEL:SNWD_D', start_date='1950-10-01'
     return values_df
 #---------------#
 def add_dowy(df, col=None):
+    """
+    Companion function to snotel_fetch. Converts days of year to days of water year.
+    
+    Parameters
+    ----------
+    df: Dataframe
+        DataFrame that contains SNOTEL data (values_df in snotel_fetch).
+    col: Pandas column
+        DataFrame column that contains day-of-year information. If passed as None, then attempts to access day of year from the indeces.
+        Default: None
+    
+    Returns
+    -------
+    None
+    
+    """
+    
     if col is None:
         df['doy'] = df.index.dayofyear
     else:
@@ -113,7 +145,25 @@ def add_dowy(df, col=None):
     df.loc[df['dowy'] <= 0, 'dowy'] += 365
 #---------------#
 def coregister_nlcd_data(is2_pd, land_cover_tif, txt_name):
+    """
+    Uses the nearest-neighbor approach to coregister National Land Cover Data (NLCD) with ICESat-2 data. The nearest-neighbor approach is needed to preserve land cover values that would be lost with spline interpolation.
     
+    Unlike the lidar coregistration, matched land cover data is saved to a txt file to speed up the process for subsequent code runs.
+    
+    Parameters
+    ----------
+    is2_pd: DataFrame
+        DataFrame containing ICESat-2 data, processed using the lidar_processing scripts.
+    land_cover_tif: Xarray tiff
+        Xarray object containing land cover values across Alaska.
+    txt_name: str
+        Name of text file that will store coregistered land cover information.
+        
+    Returns
+    -------
+    None
+    
+    """
     # Initialize the text file
     nlcd_file = open(txt_name, 'w')
     
@@ -138,6 +188,23 @@ def coregister_nlcd_data(is2_pd, land_cover_tif, txt_name):
     nlcd_file.close()
 #---------------#
 def process_nlcd_data(is2_pd, txt_name):
+    """
+    Takes coregistered land cover values and translates them to more descriptive labels. Also corrects misclassified values that were found over the ACP site in Alaska.
+    
+    Parameters
+    ----------
+    is2_pd: DataFrame
+        DataFrame containing ICESat-2 data, processed using the lidar_processing scripts.
+        
+    txt_name: str
+        Name of text file that contains coregistered land cover information.
+        
+    Returns
+    -------
+    is2_pd: DataFrame
+        An updated ICESt-2 dataframe that contains both land cover values and the corresponding labels.
+        
+    """
     
     # Add land cover data to DataFrame
     is2_pd['land_cover_value'] = pd.read_table(txt_name, header=None).values
