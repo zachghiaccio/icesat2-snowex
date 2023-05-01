@@ -73,6 +73,15 @@ def process_raw_data(df):
 
 #---------------#
 def snotel_fetch(sitecode, variablecode='SNOTEL:SNWD_D', start_date='1950-10-01', end_date='2020-12-31'):
+    """
+    Accesses SNOTEL data from the cloud using the CUAHSI HydroPortal.
+    
+    Parameters
+    ----------
+    sitecode: 
+    
+    """
+    
     #print(sitecode, variablecode, start_date, end_date)
     values_df = None
     wsdlurl = 'https://hydroportal.cuahsi.org/Snotel/cuahsi_1_1.asmx?WSDL'
@@ -102,3 +111,50 @@ def add_dowy(df, col=None):
     # Sept 30 is doy 273
     df['dowy'] = df['doy'] - 273
     df.loc[df['dowy'] <= 0, 'dowy'] += 365
+#---------------#
+def coregister_nlcd_data(is2_pd, land_cover_tif, txt_name):
+    
+    # Initialize the text file
+    nlcd_file = open(txt_name, 'w')
+    
+    # Use nearest-neighbor approach to match land cover with ATL03 segments
+    for i in np.arange(len(is2_pd)):
+        x = is2_pd['x'][i]
+        y = is2_pd['y'][i]
+        
+        dx = x - land_cover_tif.x
+        dy = y - land_cover_tif.y
+        d = np.sqrt(dx**2 + dy**2)
+        
+        x_idx = d.argmin(dim='x')[0].values
+        y_idx = d.argmin(dim='y')[0].values
+        
+        tmp = land_cover_tif[:, x_idx, y_idx].values
+        
+        # Write land cover data to text file iteratively
+        nlcd_file.write('%f\n' %tmp)
+    
+    # Close text file
+    nlcd_file.close()
+#---------------#
+def process_nlcd_data(is2_pd, txt_name):
+    
+    # Add land cover data to DataFrame
+    is2_pd['land_cover_value'] = pd.read_table(txt_name, header=None).values
+    
+    path = '/home/jovyan/icesat2-snowex/jsons-shps/land-cover-maps/'
+    # Translate values into land cover classification
+    nlcd_legend = pd.read_csv(f'{path}/NLCD_landcover_legend_2018_12_17_39kiznbMV7t0juCIU61D.csv', header=0)
+    
+    is2_pd['land_cover'] = ''
+    # Apply legend monikers to new column. Also converts strings to something that is easier to type.
+    for i,value in enumerate(is2_pd['land_cover_value']):
+        # Account for misclassified values
+        if (value==51.0) | (value==52.0):
+            is2_pd['land_cover'][i] = 'Shrub'
+        elif (value == 72.0) | (value==71.0):
+            is2_pd['land_cover'][i] = 'Herbaceous'
+        else:
+            is2_pd['land_cover'][i] = nlcd_legend['Legend'].loc[value]
+            
+    return is2_pd

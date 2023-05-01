@@ -224,6 +224,7 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
             # Add uncertainty due to photon spread (ATL03 only)
             if isinstance(is2_pd, gpd.GeoDataFrame):
                 h_sigma = is2_tmp['h_sigma'][i1]
+                dh_fit_dx = is2_tmp['dh_fit_dx'][i1]
         
     
     # Construct co-registered dataframe (NEEDS TO INCLUDE ALL BEAMS AND TIMES)
@@ -235,6 +236,7 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
                                      'lidar_snow_depth': lidar_d,
                                      'is2_height': is2_height,
                                      'h_sigma': h_sigma,
+                                     'is2_slope': dh_fit_dx,
                                      'beam': beam})
         else:
             tmp = pd.DataFrame(data={'x': x,
