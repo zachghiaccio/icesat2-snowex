@@ -6,7 +6,7 @@ Only takes specific datasets as input, but future versions will include more gen
 The focus is on using cloud services through icepyx and SlideRule to download and process large amounts of ICESat-2 data at once. Much of the work to develop these scripts was performed in the CryoCloud service.
 
 ## Scripts
-**ground_data_processing.py** - (1) Takes unprocessed magnaprobe data from the Alaska 2022 campaign and makes it readable for further analysis. Latitude and longitude are converted to a more readable format, and variable labels are given more generic names. Snow depth is converted to meters. Easting and northing coordinates are derived from the lat/lon coordinates, at projection EPSG: 32606 (UTM zone 6N; Alaska). (2) Accesses SNOTEL data from the cloud (requires ulmo package). (3) If SNOTEL data is accessed, then the day of year (DOY) and day of water year (DOWY) is added to dataframe loaded from SNOTEL.
+`ground_data_processing.py` - (1) Takes unprocessed magnaprobe data from the Alaska 2022 campaign and makes it readable for further analysis. Latitude and longitude are converted to a more readable format, and variable labels are given more generic names. Snow depth is converted to meters. Easting and northing coordinates are derived from the lat/lon coordinates, at projection EPSG: 32606 (UTM zone 6N; Alaska). (2) Accesses SNOTEL data from the cloud (requires ulmo package). (3) If SNOTEL data is accessed, then the day of year (DOY) and day of water year (DOWY) is added to dataframe loaded from SNOTEL.
 
 **is2_ak_landcover_slope.ipynb** - Takes presaved data from "is2_snowex_ak.ipynb" to perform a basic land cover and slope analysis.
 
