@@ -74,18 +74,29 @@ def atl06q(field_id, date_range, rgt):
         spatial_extent = coordinates['alaska']
         
     # Generate the query object
-    region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
+    try:
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
+        
+        region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+        #s3 = earthaccess.get_s3fs_session(daac='NSIDC', provider=region._s3login_credentials)
+        credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
+        s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
+                               secret=credentials['secretAccessKey'],
+                               token=credentials['sessionToken'])
+        gran_ids = region.avail_granules(ids=True, cloud=True)
+    except:
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version='005')
     
-    # Set up s3 cloud access - currently in a transition phase for the authentication
-    region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
-    #s3 = earthaccess.get_s3fs_session(daac='NSIDC', provider=region._s3login_credentials)
-    credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
-    s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
-                           secret=credentials['secretAccessKey'],
-                           token=credentials['sessionToken'])
+        # Set up s3 cloud access - currently in a transition phase for the authentication
+        region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+        #s3 = earthaccess.get_s3fs_session(daac='NSIDC', provider=region._s3login_credentials)
+        credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
+        s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
+                               secret=credentials['secretAccessKey'],
+                               token=credentials['sessionToken'])
+        gran_ids = region.avail_granules(ids=True, cloud=True)
     
     # Access the data through an s3 url
-    gran_ids = region.avail_granules(ids=True, cloud=True)
     s3url = gran_ids[1][0]
     f = s3.open(s3url, 'rb')
     f = [f]
@@ -107,17 +118,28 @@ def atl08q(field_id, date_range, rgt):
         spatial_extent = coordinates['alaska']
         
     # Generate the query object
-    region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
+    try:
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt)
+        
+        # Set up s3 cloud access - currently in a transition phase for the authentication
+        region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+        credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
+        s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
+                               secret=credentials['secretAccessKey'],
+                               token=credentials['sessionToken'])
+        gran_ids = region.avail_granules(ids=True, cloud=True)
+    except:
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version='005')
     
-    # Set up s3 cloud access - currently in a transition phase for the authentication
-    region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
-    credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
-    s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
-                           secret=credentials['secretAccessKey'],
-                           token=credentials['sessionToken'])
+        # Set up s3 cloud access - currently in a transition phase for the authentication
+        region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
+        credentials = region._session.get("https://data.nsidc.earthdatacloud.nasa.gov/s3credentials").json()
+        s3 = s3fs.S3FileSystem(key=credentials['accessKeyId'],
+                               secret=credentials['secretAccessKey'],
+                               token=credentials['sessionToken'])
+        gran_ids = region.avail_granules(ids=True, cloud=True)
     
     # Access the data through an s3 url
-    gran_ids = region.avail_granules(ids=True, cloud=True)
     s3url = gran_ids[1][0]
     f = s3.open(s3url, 'rb')
     f = [f]
