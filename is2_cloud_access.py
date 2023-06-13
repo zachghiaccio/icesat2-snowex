@@ -29,7 +29,7 @@ import icepyx as ipx
 gv.extension('bokeh')
 
 #\---------------------------------------------------------/#
-def atl03q(field_id):
+def atl03q(field_id, date_range, rgt, version):
     icesat2.init('slideruleearth.io', verbose=False)
     
     if field_id == 'cpcrw':
@@ -47,23 +47,28 @@ def atl03q(field_id):
     else:
         raise ValueError('Field ID not recognized, or not implemented yet.')
     
+    time_root = 'T00:00:00Z'
+    
     parms = {
         "poly": region,
+        "rgt": rgt,
         "srt": icesat2.SRT_LAND,
         "cnf": icesat2.CNF_SURFACE_HIGH,
         "atl08_class": ["atl08_ground"],
         "ats": 5.0,
         "len": 20.0,
         "res": 10.0,
-        "maxi": 5
+        "maxi": 5,
+        "t0": date_range[0]+time_root,
+        "t1": date_range[1]+time_root
     }
     
-    atl03 = icesat2.atl06p(parms, 'nsidc-s3')
+    atl03 = icesat2.atl06p(parms, 'nsidc-s3', version=version)
     
     return atl03
 
 #\---------------------------------------------------------/#
-def atl06q(field_id, date_range, rgt):
+def atl06q(field_id, date_range, rgt, version):
     
     # Specify the ICESat-2 product
     short_name = 'ATL06'
@@ -85,7 +90,7 @@ def atl06q(field_id, date_range, rgt):
                                token=credentials['sessionToken'])
         gran_ids = region.avail_granules(ids=True, cloud=True)
     except:
-        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version='005')
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version=version)
     
         # Set up s3 cloud access - currently in a transition phase for the authentication
         region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
@@ -107,7 +112,7 @@ def atl06q(field_id, date_range, rgt):
     return atl06
 
 #\---------------------------------------------------------/#
-def atl08q(field_id, date_range, rgt):
+def atl08q(field_id, date_range, rgt, version):
     
     # Specify the ICESat-2 product
     short_name = 'ATL08'
@@ -129,7 +134,7 @@ def atl08q(field_id, date_range, rgt):
                                token=credentials['sessionToken'])
         gran_ids = region.avail_granules(ids=True, cloud=True)
     except:
-        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version='005')
+        region = ipx.Query(short_name, spatial_extent, date_range, tracks=rgt, version=version)
     
         # Set up s3 cloud access - currently in a transition phase for the authentication
         region.earthdata_login('zhfair', 'zhfair@umich.edu', s3token=True)
