@@ -205,26 +205,30 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
             time = is2_tmp['time'][i1]
             beam = is2_tmp['gt'][i1]
         else:
-            is2_tmp = is2_pd.loc[is2_pd['spot']==spot]
+            if spot in np.unique(is2_pd['spot']):
+                is2_tmp = is2_pd.loc[is2_pd['spot']==spot]
             
-            xn = is2_tmp['x'].values
-            yn = is2_tmp['y'].values
+                xn = is2_tmp['x'].values
+                yn = is2_tmp['y'].values
             
-            # Define indices within x/y bounds
-            i1 = (xn>np.min(x0)) & (xn<np.max(x0))
-            i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
+                # Define indices within x/y bounds
+                i1 = (xn>np.min(x0)) & (xn<np.max(x0))
+                i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
             
-            # Set x/y coordinates, NEON heights, and corresponding IS-2 heights
-            x, y = xn[i1], yn[i1]
-            lidar_h = interpolator(yn[i1], xn[i1], grid=False)
-            lidar_d = interpolator2(yn[i1], xn[i1], grid=False)
-            is2_height = is2_tmp['height'][i1]
-            beam = is2_tmp['spot'][i1]
+                # Set x/y coordinates, NEON heights, and corresponding IS-2 heights
+                x, y = xn[i1], yn[i1]
+                lidar_h = interpolator(yn[i1], xn[i1], grid=False)
+                lidar_d = interpolator2(yn[i1], xn[i1], grid=False)
+                is2_height = is2_tmp['height'][i1]
+                beam = is2_tmp['spot'][i1]
             
-            # Add uncertainty due to photon spread (ATL03 only)
-            if isinstance(is2_pd, gpd.GeoDataFrame):
-                h_sigma = is2_tmp['h_sigma'][i1]
-                dh_fit_dx = is2_tmp['dh_fit_dx'][i1]
+                # Add uncertainty due to photon spread (ATL03 only)
+                if isinstance(is2_pd, gpd.GeoDataFrame):
+                    h_sigma = is2_tmp['h_sigma'][i1]
+                    dh_fit_dx = is2_tmp['dh_fit_dx'][i1]
+                    
+            else:
+                print('Mismatch between icepyx and SlideRule beam subsets. Skipping this beam.')
         
     
     # Construct co-registered dataframe (NEEDS TO INCLUDE ALL BEAMS AND TIMES)
