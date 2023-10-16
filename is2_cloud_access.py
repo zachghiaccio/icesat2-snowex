@@ -29,9 +29,13 @@ import icepyx as ipx
 gv.extension('bokeh')
 
 #\---------------------------------------------------------/#
-def atl03q(field_id, date_range, rgt, version):
+def atl03q(field_id, date_range, rgt, version='006',
+           cnf_surface=4, atl08_class=4,
+           ats=5.0, segment_length=20.0, res=10.0, maxi=5):
+    
     icesat2.init('slideruleearth.io', verbose=False)
     
+    # Load geoJSON for field site of interest
     if field_id == 'cpcrw':
         # Caribou/Poker Creek, AK
         region = icesat2.toregion('jsons-shps/cpcrw_lidar_box.geojson')['poly']
@@ -43,32 +47,54 @@ def atl03q(field_id, date_range, rgt, version):
         region = icesat2.toregion('jsons-shps/bcef_lidar_box.geojson')['poly']
     elif field_id == 'acp':
         # Arctic Coastal Plain, AK
-        region = icesat2.toregion('jsons-shps/acp_lidar_box.geojson')['poly']
+        region = sliderule.toregion('jsons-shps/acp_lidar_box.geojson')['poly']
     else:
         raise ValueError('Field ID not recognized, or not implemented yet.')
     
+    # Convert user-defined ATL08 class ID to string readable by SlideRule
+    atl08_ids = {-1: 'None',
+                 0: 'atl08_unclassified',
+                 1: 'atl08_noise',
+                 2: 'atl08_canopy',
+                 3: 'atl08_top_of_canopy',
+                 4: 'atl08_ground'}
+    
     time_root = 'T00:00:00Z'
     
-    parms = {
-        "poly": region,
-        "rgt": rgt,
-        "srt": icesat2.SRT_LAND,
-        "cnf": icesat2.CNF_SURFACE_HIGH,
-        "atl08_class": ["atl08_ground"],
-        "ats": 5.0,
-        "len": 20.0,
-        "res": 10.0,
-        "maxi": 5,
-        "t0": date_range[0]+time_root,
-        "t1": date_range[1]+time_root
-    }
+    if atl08_ids.get(atl08_class) == 'None':
+        parms = {
+            "poly": region,
+            "rgt": rgt,
+            "srt": icesat2.SRT_LAND,
+            "cnf": cnf_surface,
+            "ats": ats,
+            "len": segment_length,
+            "res": res,
+            "maxi": maxi,
+            "t0": date_range[0]+time_root,
+            "t1": date_range[1]+time_root
+        }
+    else:
+        parms = {
+            "poly": region,
+            "rgt": rgt,
+            "srt": icesat2.SRT_LAND,
+            "cnf": cnf_surface,
+            "atl08_class": atl08_ids.get(atl08_class),
+            "ats": ats,
+            "len": segment_length,
+            "res": res,
+            "maxi": maxi,
+            "t0": date_range[0]+time_root,
+            "t1": date_range[1]+time_root
+        }
     
-    atl03 = icesat2.atl06p(parms, 'nsidc-s3', version=version)
+    atl03 = icesat2.atl06p(parms)
     
     return atl03
 
 #\---------------------------------------------------------/#
-def atl06q(field_id, date_range, rgt, version):
+def atl06q(field_id, date_range, rgt, version='006'):
     
     # Specify the ICESat-2 product
     short_name = 'ATL06'
@@ -112,7 +138,7 @@ def atl06q(field_id, date_range, rgt, version):
     return atl06
 
 #\---------------------------------------------------------/#
-def atl08q(field_id, date_range, rgt, version):
+def atl08q(field_id, date_range, rgt, version='006'):
     
     # Specify the ICESat-2 product
     short_name = 'ATL08'
