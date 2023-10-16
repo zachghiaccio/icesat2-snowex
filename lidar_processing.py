@@ -101,6 +101,15 @@ def beam_cycle_concat(is2_files, product_id):
                     except:
                         print('Beam %s missing in data. Skipping concatenation...' %(beam))
                         tmp = pd.DataFrame()
+                elif product_id == 'ATL12':
+                    try:
+                        tmp = pd.DataFrame(data={'lat': f[beam+'/ssh_segments/latitude'][:],
+                                                 'lon': f[beam+'/ssh_segments/longitude'][:],
+                                                 'height': f[beam+'/ssh_segments/heights/h'][:],
+                                                 'delta_time': f[beam+'/ssh_segments/delta_time'][:],
+                                                 'gt': strong_ids[idx]})
+                    except:
+                        print('Beam %s missing in data. Skipping concatenation...' %(beam))
                     
                 concat_pd = pd.concat([concat_pd, tmp])
             
@@ -126,7 +135,7 @@ def polyf(seri):
     return np.polyfit(seri.index.values, seri.values, 1)[0]
 
 #---------------#
-def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
+def coregister_is2(lidar_snow_off, lidar_snow_depth, is2_df):
     """
     Co-registers NEON data with ICESat-2 data with a rectangular bivariate
     spline. The data is also corrected for geoid differences.
@@ -134,15 +143,15 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
 
     Parameters
     ----------
-    lidar_height : Xarray
+    lidar_snow_off : Xarray
         Lidar DEM/DSM in Xarray format.
     lidar_snow_depth : Xarray
         Lidar-derived snow depth in Xarray format.
-    is2_pd : DataFrame
+    is2_df : DataFrame
         DataFrame for the ICESat-2 product of interest.
     strong_ids: list
         List of strings identifying the strong beams. Needed to co-register
-        NEON with each beam.
+        lidar with each beam.
 
     Returns
     -------
@@ -152,111 +161,80 @@ def coregister_is2(lidar_height, lidar_snow_depth, is2_pd, strong_ids):
 
     """
     
-    # Correction factor to reproject lidar data to WGS84. Currently only
-    # have a value for NEON.
-    # A GEOID CORRECTION FOR ASO IS NEEDED ASAP
-    geoid_correction = 9.95
+    # Define x/y coordinates from snow-off data
+    x0, y0 = np.array(lidar_snow_off.x), np.array(lidar_snow_off.y)
     
-    # Surface elevation coordinates
-    x0 = np.array(lidar_height.x)
-    y0 = np.array(lidar_height.y)
+    # Do the same, but for snow depth data (work in progress)
+    xs, ys = np.array(lidar_snow_depth.x), np.array(lidar_snow_depth.y)
     
-    # Apply spline to NEON data
-    dem_heights = np.array(lidar_height.sel(band=1))[::-1,:]
+    # Filter NaNs that would otherwise mess up the interpolators
+    dem_heights = np.array(lidar_snow_off.sel(band=1))[::-1,:]
     dem_heights[np.isnan(dem_heights)] = -9999
-    interpolator = RectBivariateSpline(np.array(y0)[::-1], 
-                                       np.array(x0),
-                                       dem_heights)
+    dem_depths = np.array(lidar_snow_depth.sel(band=1))[::-1,:]
+    dem_depths[np.isnan(dem_depths)] = -9999
     
-    snow_depths = np.array(lidar_snow_depth.sel(band=1))[::-1,:]
-    snow_depths[np.isnan(snow_depths)] = -9999
-    try:
-        interpolator2 = RectBivariateSpline(np.array(y0)[::-1],
-                                           np.array(x0),
-                                           snow_depths)
-    except:
-        # If the snow-on/-off DEMs are not of the same size
-        x0 = np.array(lidar_snow_depth.x)
-        y0 = np.array(lidar_snow_depth.y)
-        
-        interpolator2 = RectBivariateSpline(np.array(y0)[::-1],
-                                           np.array(x0),
-                                           snow_depths)
+    # Generate interpolators. UAF TIFFs are rarely the same size, hence the separate splines
+    interp_height = RectBivariateSpline(np.array(y0)[::-1], 
+                                        np.array(x0),
+                                        dem_heights)
+    interp_depth = RectBivariateSpline(np.array(ys)[::-1],
+                                       np.array(xs),
+                                       dem_depths)
     
-    # Use the constructed spline to align NEON with ICESat-2. This is done for
-    # all three strong beams.
-    is2_neon_pd = pd.DataFrame()
-    for spot in strong_ids:
-        if not 'spot' in is2_pd.columns:
-            is2_tmp = is2_pd.loc[is2_pd['gt']==spot]
-            
-            xn = is2_tmp['x'].values
-            yn = is2_tmp['y'].values
-            
-            #Define indices within x/y bounds of DEM
-            i1 = (xn>np.min(x0)) & (xn<np.max(x0))
-            i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
-            
-            # Set x/y coordinates, NEON heights, and corresponding IS-2 heights
-            x, y = xn[i1], yn[i1]
-            lidar_h = interpolator(yn[i1], xn[i1], grid=False)
-            lidar_d = interpolator2(yn[i1], xn[i1], grid=False)
-            is2_height = is2_tmp['height'][i1]
-            time = is2_tmp['time'][i1]
-            beam = is2_tmp['gt'][i1]
-        else:
-            if spot in np.unique(is2_pd['spot']):
-                is2_tmp = is2_pd.loc[is2_pd['spot']==spot]
-            
-                xn = is2_tmp['x'].values
-                yn = is2_tmp['y'].values
-            
-                # Define indices within x/y bounds
-                i1 = (xn>np.min(x0)) & (xn<np.max(x0))
-                i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
-            
-                # Set x/y coordinates, NEON heights, and corresponding IS-2 heights
-                x, y = xn[i1], yn[i1]
-                lidar_h = interpolator(yn[i1], xn[i1], grid=False)
-                lidar_d = interpolator2(yn[i1], xn[i1], grid=False)
-                is2_height = is2_tmp['height'][i1]
-                beam = is2_tmp['spot'][i1]
-            
-                # Add uncertainty due to photon spread (ATL03 only)
-                if isinstance(is2_pd, gpd.GeoDataFrame):
-                    h_sigma = is2_tmp['h_sigma'][i1]
-                    dh_fit_dx = is2_tmp['dh_fit_dx'][i1]
-                    
-            else:
-                print('Mismatch between icepyx and SlideRule beam subsets. Skipping this beam.')
+    # Use the constructed spline to align the lidar with ICESat-2. This is done for all available beams.
+    is2_lidar_df = pd.DataFrame()
+    for beam in np.unique(is2_df['gt']):
+        is2_tmp = is2_df.loc[is2_df['gt']==beam]
         
+        # ICESat-2 x/y coordinates
+        xn, yn = is2_tmp.geometry.x, is2_tmp.geometry.y
+        
+        # Define indices within x/y bounds of DEM
+        i1 = (xn>np.min(x0)) & (xn<np.max(x0))
+        i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
+        
+        lidar_height = interp_height(yn[i1], xn[i1], grid=False)
+        lidar_depth = interp_depth(yn[i1], xn[i1], grid=False)
+        # Construct dataframe of ICESat-2 and UAF data.
+        try: # SlideRule (ATL06-SR)
+            tmp = pd.DataFrame(data={'lat': is2_tmp['lat'][i1],
+                                     'lon': is2_tmp['lon'][i1],
+                                     'x': xn[i1],
+                                     'y': yn[i1],
+                                     'beam': is2_tmp['gt'][i1],
+                                     'is2_height': is2_tmp['height'][i1],
+                                     'n_fit_photons': is2_tmp['n_fit_photons'][i1],
+                                     'h_sigma': is2_tmp['h_sigma'][i1],
+                                     'dh_fit_dx': is2_tmp['dh_fit_dx'][i1],
+                                     'lidar_height': lidar_height,
+                                     'lidar_snow_depth': lidar_depth
+                                    }
+                              )
+        except: # ATL06 and ATL08
+            tmp = pd.DataFrame(data={'lat': is2_tmp['lat'][i1],
+                                     'lon': is2_tmp['lon'][i1],
+                                     'x': xn[i1],
+                                     'y': yn[i1],
+                                     'beam': is2_tmp['gt'][i1],
+                                     'is2_height': is2_tmp['height'][i1],
+                                     'lidar_height': lidar_height,
+                                     'lidar_snow_depth': lidar_depth
+                                    }
+                              )
+            
+        # Concatenate coregistered data to final dataframe
+        is2_lidar_df = pd.concat([is2_lidar_df, tmp])
+        
+        # Estimate the ICESat-2 residual (e.g. snow depth during snow-on)
+        is2_lidar_df['residual'] = is2_lidar_df['is2_height'] - is2_lidar_df['lidar_height']
+        
+    # Convert final dataframe into a geodataframe
+    is2_lidar_gdf = gpd.GeoDataFrame(is2_lidar_df,
+                                     geometry=gpd.points_from_xy(is2_lidar_df.lon, is2_lidar_df.lat),
+                                     crs='EPSG:4326')
     
-    # Construct co-registered dataframe (NEEDS TO INCLUDE ALL BEAMS AND TIMES)
-        if isinstance(is2_pd, gpd.GeoDataFrame):
-            # Only the ATL03 data is in as a geodataframe (quick fix for now)
-            tmp = pd.DataFrame(data={'x': x,
-                                     'y': y,
-                                     'lidar_height': lidar_h,
-                                     'lidar_snow_depth': lidar_d,
-                                     'is2_height': is2_height,
-                                     'h_sigma': h_sigma,
-                                     'is2_slope': dh_fit_dx,
-                                     'beam': beam})
-        else:
-            tmp = pd.DataFrame(data={'x': x,
-                                     'y': y,
-                                     'lidar_height': lidar_h,
-                                     'lidar_snow_depth': lidar_d,
-                                     'is2_height': is2_height,
-                                     'beam': beam})
-        
-        is2_neon_pd = pd.concat([is2_neon_pd, tmp])
-        
-    # Apply correction factor to NEON data
-    is2_neon_pd['lidar_height'] += geoid_correction
-    is2_neon_pd['residual'] = is2_neon_pd['is2_height'] - is2_neon_pd['lidar_height']
-    
-    return is2_neon_pd
+    return is2_lidar_gdf
+
 
 #---------------#
 def coregister_point_data(lidar_tif, lidar_snow_depth, ground_pd):
