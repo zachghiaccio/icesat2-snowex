@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from pyproj import Proj, transform
+from scipy.interpolate import RectBivariateSpline
 import ulmo
 
 #---------------#
@@ -225,3 +226,53 @@ def process_nlcd_data(is2_pd, txt_name):
             is2_pd['land_cover'][i] = nlcd_legend['Legend'].loc[value]
             
     return is2_pd
+#---------------#
+def coregister_gfcc_data(is2_pd, forest_cover_tif):
+    """
+    Co-registers ICESat-2 segments with GFCC forest cover data.
+    
+    Parameters
+    ----------
+    is2_pd: DataFrame
+        DataFrame containing ICESat-2 data, processed using the lidar_processing scripts.    
+    forest_cover_tif: Xarray TIFF
+        TIFF raster containing forest cover percentages.
+        
+    Returns
+    -------
+    is2_gfcc_pd: DataFrame
+        An updated ICESat-2 dataframe that contains forest cover data in addition to other variables.
+        
+    """
+    
+    # Raster coordinates
+    x0, y0 = np.array(forest_cover_tif.x), np.array(forest_cover_tif.y)
+    
+    # Generate spline for land cover data
+    dem_cover = np.array(forest_cover_tif.sel(band=1))[::-1,:]
+    interpolator = RectBivariateSpline(np.array(y0)[::-1],
+                                       np.array(x0),
+                                       dem_cover)
+    
+    # Use the constructed spline to align GFCC with ICESat-2
+    gfcc_pd = pd.DataFrame()
+    for beam in np.unique(is2_pd['beam']):
+        is2_tmp = is2_pd.loc[is2_pd['beam']==beam]
+
+        # ICESat-2 x/y coordinates
+        xn, yn = is2_tmp['x'].values, is2_tmp['y'].values
+
+        # Define indices within x/y bounds
+        i1 = (xn>np.min(x0)) & (xn<np.max(x0))
+        i1 &= (yn>np.min(y0)) & (yn<np.max(y0))
+
+        # Co-register forest cover with ICESat-2, using x/y coordinates and spline
+        forcov = interpolator(yn[i1], xn[i1], grid=False)
+        tmp = pd.DataFrame(data={'forest_cover': forcov})
+        gfcc_pd = pd.concat([gfcc_pd, tmp])
+            
+    # Add forest cover data to ICESat-2 dataframe
+    is2_gfcc_pd = is2_pd
+    is2_gfcc_pd['forest_cover'] = gfcc_pd['forest_cover'].values
+    
+    return is2_gfcc_pd
