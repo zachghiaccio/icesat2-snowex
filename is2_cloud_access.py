@@ -15,6 +15,7 @@ import py3dep
 from pyproj import Transformer, CRS
 import s3fs
 from shapely.geometry import Polygon, Point
+from shapely.ops import unary_union
 from sliderule import icesat2
 from sliderule import sliderule, ipysliderule, io
 
@@ -344,8 +345,9 @@ def threedepq(field_id):
         # Arctic Coastal Plain, AK
         region = gpd.read_file('jsons-shps/acp_lidar_box.geojson').geometry[0]
     elif field_id == 'utk':
-        # Toolik Station, AK
-        region = gpd.read_file('jsons-shps/toolik_lidar_boxes.geojson').geometry[0]
+        # Toolik Station, AK (extra step needed to merge three ROI polygons)
+        tmp = gpd.read_file('jsons-shps/toolik_lidar_boxes.geojson').geometry
+        region = unary_union(tmp.geometry.values)
     else:
         raise ValueError('Field ID not recognized, or not implemented yet.')
 
