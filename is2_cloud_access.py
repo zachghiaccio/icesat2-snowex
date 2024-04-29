@@ -353,5 +353,8 @@ def threedepq(field_id):
 
     # Access 3DEP data using the py3dep package
     three_dep = py3dep.get_map("DEM", region, resolution=10, geo_crs=4326)
+
+    # Reproject to EPSG:32606
+    three_dep = three_dep.rio.reproject("epsg:32606")
     
     return three_dep
